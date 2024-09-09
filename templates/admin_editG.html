@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>編輯組別</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .delete-button {
+            background-color: #f44336;
+        }
+        .delete-button:hover {
+            background-color: #e53935;
+        }
+        #editModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 500px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 20px;
+        }
+        #editModal h2 {
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay"></div>
+    <div class="container">
+        <h1>編輯組別</h1>
+        <table id="teamsTable">
+            <thead>
+                <tr>
+                    <th>組別名稱</th>
+                    <th>組員 1</th>
+                    <th>組員 2</th>
+                    <th>組員 3</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 組別將被動態添加到這裡 -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="editModal">
+        <h2>編輯組別</h2>
+        <div class="form-group">
+            <label for="editTeamName">組別名稱：</label>
+            <input type="text" id="editTeamName" name="editTeamName">
+        </div>
+        <div class="form-group">
+            <label for="editMember1">選擇組員 1：</label>
+            <select id="editMember1"></select>
+        </div>
+        <div class="form-group">
+            <label for="editMember2">選擇組員 2：</label>
+            <select id="editMember2"></select>
+        </div>
+        <div class="form-group">
+            <label for="editMember3">選擇組員 3：</label>
+            <select id="editMember3"></select>
+        </div>
+        <button type="button" onclick="saveEdit()">儲存</button>
+        <button type="button" onclick="closeEditModal()">取消</button>
+    </div>
+
+    <script>
+        var editingIndex = -1;
+
+        function loadTeams() {
+            fetch('/api/teams')
+                .then(response => response.json())
+                .then(data => {
+                    var tableBody = document.getElementById('teamsTable').getElementsByTagName('tbody')[0];
+                    tableBody.innerHTML = '';
+
+                    data.forEach(function(team) {
+                        var row = tableBody.insertRow();
+
+                        row.insertCell(0).textContent = team[1];
+                        row.insertCell(1).textContent = team[2];
+                        row.insertCell(2).textContent = team[3];
+                        row.insertCell(3).textContent = team[4];
+
+                        var editButton = document.createElement('button');
+                        editButton.textContent = '編輯';
+                        editButton.onclick = function() {
+                            openEditModal(team[0]); // teamID
+                        };
+                        row.insertCell(4).appendChild(editButton);
+
+                        var deleteButton = document.createElement('button');
+                        deleteButton.textContent = '刪除';
+                        deleteButton.className = 'delete-button';
+                        deleteButton.onclick = function() {
+                            deleteTeam(team[0]); // teamID
+                        };
+                        row.insertCell(4).appendChild(deleteButton);
+                    });
+                });
+        }
+
+        function openEditModal(teamID) {
+            fetch('/api/teams/' + teamID)
+                .then(response => response.json())
+                .then(data => {
+                    editingIndex = teamID;
+                    document.getElementById('editTeamName').value = data.teamName;
+                    updateEditSelectOptions([data.member1, data.member2, data.member3]);
+                    document.getElementById('editModal').style.display = 'block';
+                    document.getElementById('overlay').style.display = 'block';
+                });
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function updateEditSelectOptions(selectedMembers) {
+            fetch('/api/students')
+                .then(response => response.json())
+                .then(data => {
+                    const memberOptions = data.map(student => `<option value="${student[0]}">${student[1]}</option>`).join('');
+                    const selects = ['editMember1', 'editMember2', 'editMember3'];
+
+                    selects.forEach(function(selectId, index) {
+                        var select = document.getElementById(selectId);
+                        select.innerHTML = memberOptions;
+                        select.value = selectedMembers[index];
+                    });
+                });
+        }
+
+        function saveEdit() {
+            var teamName = document.getElementById('editTeamName').value;
+            var member1 = document.getElementById('editMember1').value;
+            var member2 = document.getElementById('editMember2').value;
+            var member3 = document.getElementById('editMember3').value;
+
+            if (!teamName || member1 === member2 || member1 === member3 || member2 === member3) {
+                alert("請確保組別名稱已輸入，並且組員選擇不重複！");
+                return;
+            }
+
+            fetch('/api/teams/' + editingIndex, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    teamName: teamName,
+                    member1: member1,
+                    member2: member2,
+                    member3: member3
+                })
+            })
+            .then(response => response.json())
+            .then(() => {
+                loadTeams();
+                closeEditModal();
+            });
+        }
+
+        function deleteTeam(teamID) {
+            if (confirm('確定要刪除這個組別嗎？')) {
+                fetch('/api/teams/' + teamID, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(() => {
+                    loadTeams();
+                });
+            }
+        }
+
+        window.onload = function() {
+            loadTeams();
+        }
+    </script>
+</body>
+</html>

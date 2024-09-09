@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>創建組別</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>創建組別</h1>
+        <div class="form-group">
+            <label for="member1">選擇組員 1：</label>
+            <select id="member1" name="member1"></select>
+        </div>
+        <div class="form-group">
+            <label for="member2">選擇組員 2：</label>
+            <select id="member2" name="member2"></select>
+        </div>
+        <div class="form-group">
+            <label for="member3">選擇組員 3：</label>
+            <select id="member3" name="member3"></select>
+        </div>
+        <div class="form-group">
+            <label for="teamName">組別名稱：</label>
+            <input type="text" id="teamName" name="teamName" placeholder="輸入組別名稱">
+        </div>
+        <button type="button" onclick="createTeam()">創建組別</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/students')
+                .then(response => response.json())
+                .then(data => {
+                    const selects = document.querySelectorAll('select');
+                    selects.forEach(select => {
+                        data.forEach(student => {
+                            const option = document.createElement('option');
+                            option.value = student[0];  // studentID
+                            option.text = student[1];   // studentName
+                            select.add(option);
+                        });
+                    });
+                });
+        });
+
+        function createTeam() {
+            const member1 = document.getElementById("member1").value;
+            const member2 = document.getElementById("member2").value;
+            const member3 = document.getElementById("member3").value;
+            const teamName = document.getElementById("teamName").value;
+
+            if (!teamName || member1 === member2 || member1 === member3 || member2 === member3) {
+                alert("請確保組別名稱已輸入，並且組員選擇不重複！");
+                return;
+            }
+
+            fetch('/api/teams', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    teamName: teamName,
+                    member1: member1,
+                    member2: member2,
+                    member3: member3
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("組別 " + teamName + " 創建成功！");
+                    // 清除表單
+                    document.getElementById("teamName").value = '';
+                    document.getElementById("member1").selectedIndex = 0;
+                    document.getElementById("member2").selectedIndex = 0;
+                    document.getElementById("member3").selectedIndex = 0;
+                } else {
+                    alert("創建成功！");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("創建組別時發生錯誤！");
+            });
+        }
+    </script>
+</body>
+</html>
