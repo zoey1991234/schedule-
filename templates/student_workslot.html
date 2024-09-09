@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排班表</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .editable {
+            background-color: #e7f7ff;
+        }
+        .non-editable {
+            background-color: #f9f9f9;
+        }
+        .submit-button, .save-button {
+            display: block;
+            width: 100px;
+            padding: 10px;
+            margin: 20px auto;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .submit-button:hover, .save-button:hover {
+            background-color: #45a049;
+        }
+        .table-title {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .form-container {
+            margin-top: 20px;
+        }
+        .first-choice {
+            color: red;
+        }
+        .second-choice {
+            color: blue;
+        }
+        .cell-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .first-choice-content {
+            flex: 1;
+        }
+        .second-choice-content {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+  <div class="table-title">排班表</div>
+    <table id="table1">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Wednesday</th>
+                <th>Thursday</th>
+                <th>Friday</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="non-editable">14:00 - 17:00</td>
+                <td class="editable"></td>
+                <td class="editable"></td>
+                <td class="editable"></td>
+            </tr>
+           
+        </tbody>
+    </table>
+
+   
+    <div class="form-container">
+        <h3>為第一志願選擇時段(紅)</h3>
+        <label for="day1">Day:</label>
+        <select id="day1">
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+        </select>
+        <label for="group1">Group:</label>
+        <select id="group1"></select>
+        <button class="submit-button" onclick="addEntry('table1', 'day1', 'group1', 'first')">添加</button>
+    </div>
+
+
+  <div class="form-container">
+        <h3>為第二志願選擇時段(藍)</h3>
+        <label for="day2">Day:</label>
+        <select id="day2">
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+        </select>
+        <label for="group2">Group:</label>
+        <select id="group2"></select>
+        <button class="submit-button" onclick="addEntry('table1', 'day2', 'group2', 'second')">添加</button>
+    </div>
+
+
+  <div class="form-container">
+        <button class="save-button" onclick="saveSchedule()">儲存</button>
+    </div>
+
+    <script>
+        var studentId = '{{ student_id }}';
+        var studentTeam = '';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 獲取學生的組別
+            fetch('/api/student_team/' + studentId)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.error) {
+                        studentTeam = data.teamName;
+                        // 更新選擇框
+                        updateGroupSelect('group1', studentTeam);
+                        updateGroupSelect('group2', studentTeam);
+                    }
+                })
+                .catch(error => console.error('Error fetching student team:', error));
+
+            // 加載現有排班數據
+            loadScheduleData();
+        });
+
+        function updateGroupSelect(selectId, teamName) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = ''; // 清空現有選項
+            const option = document.createElement('option');
+            option.value = teamName;
+            option.text = teamName;
+            select.add(option);
+        }
+
+        function loadScheduleData() {
+            fetch('/api/schedules')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById('table1');
+                    const days = ['Wednesday', 'Thursday', 'Friday'];
+
+                    data.forEach(entry => {
+                        const { time, day, firstChoice, secondChoice } = entry;
+                        const dayIndex = days.indexOf(day) + 2; // +2 to match column index
+
+                        const rows = table.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const timeCell = row.querySelector('td.non-editable');
+                            const dayCell = row.querySelector(`td.editable:nth-child(${dayIndex})`);
+
+                            if (timeCell.textContent === time && dayCell) {
+                                dayCell.innerHTML = `
+                                    <div class="cell-content">
+                                        <div class="first-choice-content ${firstChoice ? 'first-choice' : ''}">${firstChoice || ''}</div>
+                                        <div class="second-choice-content ${secondChoice ? 'second-choice' : ''}">${secondChoice || ''}</div>
+                                    </div>
+                                `;
+                            }
+                        });
+                    });
+                })
+                .catch(error => console.error('Error fetching schedules:', error));
+        }
+
+        function addEntry(tableId, dayId, groupId, choiceType) {
+            const table = document.getElementById(tableId);
+            const day = document.getElementById(dayId).value;
+            const group = document.getElementById(groupId).value;
+
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const timeCell = row.querySelector('td.non-editable');
+                const dayCells = row.querySelectorAll('td.editable');
+
+                if (timeCell.textContent === '14:00 - 17:00') {
+                    let cellContent = row.querySelector(`td.editable:nth-child(${['Wednesday', 'Thursday', 'Friday'].indexOf(day) + 2})`);
+                    if (cellContent) {
+                        if (cellContent.innerHTML === '') {
+                            cellContent.innerHTML = `<div class="cell-content">
+                                                        <div class="${choiceType}-choice-content ${choiceType === 'first' ? 'first-choice' : 'second-choice'}">${group}</div>
+                                                      </div>`;
+                        } else {
+                            let existingContent = cellContent.querySelector(`.${choiceType}-choice-content`);
+                            if (existingContent) {
+                                existingContent.textContent = group;
+                            } else {
+                                cellContent.innerHTML += `<div class="${choiceType}-choice-content ${choiceType === 'first' ? 'first-choice' : 'second-choice'}">${group}</div>`;
+                            }
+                        }
+                    } else {
+                        alert('Selected time slot for the chosen day is already filled.');
+                    }
+                }
+            });
+        }
+
+        function saveSchedule() {
+            const rows = document.querySelectorAll('#table1 tbody tr');
+            const scheduleData = [];
+
+            rows.forEach(row => {
+                const time = row.querySelector('td.non-editable').textContent;
+                const dayCells = row.querySelectorAll('td.editable');
+                const days = ['Wednesday', 'Thursday', 'Friday'];
+
+                dayCells.forEach((cell, index) => {
+                    const day = days[index];
+                    const firstChoice = cell.querySelector('.first-choice-content') ? cell.querySelector('.first-choice-content').textContent : '';
+                    const secondChoice = cell.querySelector('.second-choice-content') ? cell.querySelector('.second-choice-content').textContent : '';
+
+                    scheduleData.push({ time, day, firstChoice, secondChoice });
+                });
+            });
+
+            fetch('/api/schedules', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(scheduleData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Schedule saved successfully!');
+                    loadScheduleData(); 
+                } else {
+                    alert('Failed to save schedule.');
+                }
+            })
+            .catch(error => console.error('Error saving schedule:', error));
+        }
+    </script>
+</body>
+</html
