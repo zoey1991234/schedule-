@@ -4,6 +4,22 @@
 
 用於學生分組與排班簡易網頁
 
+# 運行步驟
+
+1.安裝必要的依賴
+
+`pip install Flask`
+
+`pip install mysqlclient`
+
+
+2.運行 Flask 應用
+
+`python app.py`
+
+---------------------------------------
+
+
 ![image](https://github.com/user-attachments/assets/196ec587-4e57-4fdf-95a8-1d7aca4d80e3)
 
 student
@@ -26,6 +42,9 @@ teams
 
 ![image](https://github.com/user-attachments/assets/fcf73379-cf79-4011-a18f-ef5e3181727c)
 
+---------------------------------------
+
+
 學生主頁
 
 
@@ -44,6 +63,9 @@ teams
 
 
 ![image](https://github.com/user-attachments/assets/0ffd713b-248e-43f6-8af4-45a8ac381e98)
+
+---------------------------------------
+
 
 
 管理員主頁
