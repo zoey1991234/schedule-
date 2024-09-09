@@ -40,3 +40,26 @@ teams
 
 ![image](https://github.com/user-attachments/assets/0bb50fb1-9ee3-4ab5-8dca-0c81a67b4859)
 
+學生只能編輯自己所在組別(該學生為A組)
+
+
+![image](https://github.com/user-attachments/assets/0ffd713b-248e-43f6-8af4-45a8ac381e98)
+
+
+管理員主頁
+
+![image](https://github.com/user-attachments/assets/a75f2e7d-34df-4a89-bfbd-d9e679566111)
+
+創建組別
+
+![image](https://github.com/user-attachments/assets/298f6a6d-85b0-4075-9429-d1c32aa22d76)
+
+編輯組別
+
+![image](https://github.com/user-attachments/assets/611b117e-1de6-4919-93d8-d0ee237e4550)
+
+管理員決定最後排班順序
+
+![image](https://github.com/user-attachments/assets/60a28b02-c6c8-495e-a64f-a69e9cb9dcf9)
+
+
