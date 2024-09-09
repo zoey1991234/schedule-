@@ -6,14 +6,16 @@
 
 # 運行步驟
 
-1.安裝必要的依賴
+1.建立資料庫
+
+2.安裝必要的依賴
 
 `pip install Flask`
 
 `pip install mysqlclient`
 
 
-2.運行 Flask 應用
+3.運行 Flask 應用
 
 `python app.py`
 
