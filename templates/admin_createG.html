@@ -62,20 +62,37 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            fetch('/api/students')
-                .then(response => response.json())
-                .then(data => {
-                    const selects = document.querySelectorAll('select');
-                    selects.forEach(select => {
-                        data.forEach(student => {
-                            const option = document.createElement('option');
-                            option.value = student[0];  // studentID
-                            option.text = student[1];   // studentName
-                            select.add(option);
-                        });
+            loadAvailableStudents();
+        });
+
+        function loadAvailableStudents() {
+            Promise.all([
+                fetch('/api/students').then(response => response.json()),
+                fetch('/api/teams').then(response => response.json())
+            ])
+            .then(([students, teams]) => {
+                const assignedStudents = new Set();
+                teams.forEach(team => {
+                    assignedStudents.add(team[2]); // member1
+                    assignedStudents.add(team[3]); // member2
+                    assignedStudents.add(team[4]); // member3
+                });
+
+                const availableStudents = students.filter(student => !assignedStudents.has(student[0]));
+
+                const selects = document.querySelectorAll('select');
+                selects.forEach(select => {
+                    select.innerHTML = '<option value="">請選擇</option>';
+                    availableStudents.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student[0];  // studentID
+                        option.text = student[1];   // studentName
+                        select.add(option);
                     });
                 });
-        });
+            })
+            .catch(error => console.error('Error loading data:', error));
+        }
 
         function createTeam() {
             const member1 = document.getElementById("member1").value;
@@ -83,8 +100,8 @@
             const member3 = document.getElementById("member3").value;
             const teamName = document.getElementById("teamName").value;
 
-            if (!teamName || member1 === member2 || member1 === member3 || member2 === member3) {
-                alert("請確保組別名稱已輸入，並且組員選擇不重複！");
+            if (!teamName || !member1 || !member2 || !member3 || member1 === member2 || member1 === member3 || member2 === member3) {
+                alert("請確保所有欄位都已填寫，並且組員選擇不重複！");
                 return;
             }
 
@@ -102,15 +119,17 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data.status === "success") {
                     alert("組別 " + teamName + " 創建成功！");
                     // 清除表單
                     document.getElementById("teamName").value = '';
                     document.getElementById("member1").selectedIndex = 0;
                     document.getElementById("member2").selectedIndex = 0;
                     document.getElementById("member3").selectedIndex = 0;
+                    // 重新加載可用學生列表
+                    loadAvailableStudents();
                 } else {
-                    alert("創建成功！");
+                    alert("創建失敗：" + (data.message || "未知錯誤"));
                 }
             })
             .catch(error => {
