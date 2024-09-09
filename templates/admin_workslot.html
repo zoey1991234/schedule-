@@ -69,7 +69,7 @@
     </style>
 </head>
 <body>
-    <!-- First Table with Title -->
+ 
     <div class="table-title">排班表</div>
     <table id="table1">
         <thead>
@@ -87,11 +87,10 @@
                 <td class="editable"></td>
                 <td class="editable"></td>
             </tr>
-            <!-- Add more rows as needed -->
         </tbody>
+        
     </table>
 
-    <!-- Form for First Table -->
     <div class="form-container">
         <h3>為第一志願選擇時段</h3>
         <label for="day1">Day:</label>
@@ -105,7 +104,7 @@
         <button class="submit-button" onclick="addEntry('table1', 'day1', 'group1', 'first')">添加</button>
     </div>
 
-    <!-- Form for Second Table -->
+
     <div class="form-container">
         <h3>為第二志願選擇時段</h3>
         <label for="day2">Day:</label>
@@ -119,7 +118,7 @@
         <button class="submit-button" onclick="addEntry('table1', 'day2', 'group2', 'second')">添加</button>
     </div>
 
-    <!-- Save Button -->
+
     <div class="form-container">
         <button class="save-button" onclick="saveSchedule()">儲存</button>
     </div>
@@ -154,7 +153,7 @@
                 })
                 .catch(error => console.error('Error fetching teams:', error));
     
-            // Load existing schedule data
+
             loadScheduleData();
         });
     
@@ -249,7 +248,7 @@
             .then(data => {
                 if (data.status === 'success') {
                     alert('Schedule saved successfully!');
-                    loadScheduleData();  // Reload the schedule data after saving
+                    loadScheduleData(); 
                 } else {
                     alert('Failed to save schedule.');
                 }
