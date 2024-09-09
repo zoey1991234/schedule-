@@ -44,7 +44,7 @@
         .delete-button:hover {
             background-color: #e53935;
         }
-
+        
         #editModal {
             display: none;
             position: fixed;
@@ -60,9 +60,6 @@
             z-index: 1000;
             padding: 20px;
         }
-        #editModal h2 {
-            margin-top: 0;
-        }
         .form-group {
             margin-bottom: 15px;
         }
@@ -75,7 +72,7 @@
             padding: 8px;
             box-sizing: border-box;
         }
-
+        /* 遮罩層 */
         #overlay {
             display: none;
             position: fixed;
@@ -92,97 +89,88 @@
     <div id="overlay"></div>
     <div class="container">
         <h1>編輯組別</h1>
-        <table id="teamsTable">
-            <thead>
-                <tr>
-                    <th>組別名稱</th>
-                    <th>組員 1</th>
-                    <th>組員 2</th>
-                    <th>組員 3</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-               
-            </tbody>
-        </table>
+        <div id="teamInfo"></div>
     </div>
 
-    
+    <!-- 編輯組別模態框 -->
     <div id="editModal">
-        <h2>編輯組別</h2>
         <div class="form-group">
             <label for="editTeamName">組別名稱：</label>
             <input type="text" id="editTeamName" name="editTeamName">
         </div>
-
         <div class="form-group">
             <label for="editMember1">選擇組員 1：</label>
             <select id="editMember1"></select>
         </div>
-
         <div class="form-group">
             <label for="editMember2">選擇組員 2：</label>
             <select id="editMember2"></select>
         </div>
-
         <div class="form-group">
             <label for="editMember3">選擇組員 3：</label>
             <select id="editMember3"></select>
         </div>
-
         <button type="button" onclick="saveEdit()">儲存</button>
         <button type="button" onclick="closeEditModal()">取消</button>
     </div>
 
     <script>
-        var editingIndex = -1;
+        var studentId = '{{ student_id }}';
+        var editingTeamId = null;
 
-        function loadTeams() {
-            var teams = JSON.parse(localStorage.getItem('teams')) || [];
-            var tableBody = document.getElementById('teamsTable').getElementsByTagName('tbody')[0];
-            tableBody.innerHTML = '';
-
-            teams.forEach(function(team, index) {
-                var row = tableBody.insertRow();
-
-                row.insertCell(0).textContent = team.name;
-                row.insertCell(1).textContent = team.members[0];
-                row.insertCell(2).textContent = team.members[1];
-                row.insertCell(3).textContent = team.members[2];
-
-                // 編輯按鈕
-                var editButton = document.createElement('button');
-                editButton.textContent = '編輯';
-                editButton.onclick = function() {
-                    openEditModal(index);
-                };
-                row.insertCell(4).appendChild(editButton);
-
-                // 刪除按鈕
-                var deleteButton = document.createElement('button');
-                deleteButton.textContent = '刪除';
-                deleteButton.className = 'delete-button';
-                deleteButton.onclick = function() {
-                    deleteTeam(index);
-                };
-                row.insertCell(4).appendChild(deleteButton);
-            });
+        function loadTeam() {
+            fetch('/api/student_team/' + studentId)
+                .then(response => response.json())
+                .then(team => {
+                    if (team.error) {
+                        document.getElementById('teamInfo').innerHTML = '<p>你目前沒有加入任何組別。</p>';
+                    } else {
+                        var html = `
+                            <table>
+                                <tr>
+                                    <th>組別名稱</th>
+                                    <th>組員 1</th>
+                                    <th>組員 2</th>
+                                    <th>組員 3</th>
+                                    <th>操作</th>
+                                </tr>
+                                <tr>
+                                    <td>${team.teamName}</td>
+                                    <td>${team.member1}</td>
+                                    <td>${team.member2}</td>
+                                    <td>${team.member3}</td>
+                                    <td>
+                                        <button onclick="openEditModal(${team.teamID})">編輯</button>
+                                    </td>
+                                </tr>
+                            </table>
+                        `;
+                        document.getElementById('teamInfo').innerHTML = html;
+                    }
+                });
         }
 
-        function openEditModal(index) {
-            editingIndex = index;
-            var teams = JSON.parse(localStorage.getItem('teams')) || [];
-            var team = teams[index];
+        function openEditModal(teamId) {
+            editingTeamId = teamId;
+            fetch('/api/teams/' + teamId)
+                .then(response => response.json())
+                .then(team => {
+                    document.getElementById('editTeamName').value = team.teamName;
+                    fetchMembers().then(members => {
+                        updateEditSelectOptions(members, [team.member1, team.member2, team.member3]);
+                        document.getElementById('editModal').style.display = 'block';
+                        document.getElementById('overlay').style.display = 'block';
+                    });
+                });
+        }
 
-            document.getElementById('editTeamName').value = team.name;
-            var members = ['A', 'B', 'C', 'D']; // 假設這些是所有可能的組員
-
-            // 更新下拉選單
-            updateEditSelectOptions(members, team.members);
-
-            document.getElementById('editModal').style.display = 'block';
-            document.getElementById('overlay').style.display = 'block';
+        function fetchMembers() {
+            return fetch('/api/students')
+                .then(response => response.json())
+                .then(data => data.map(item => ({
+                    id: item[0],
+                    name: item[1]
+                })));
         }
 
         function closeEditModal() {
@@ -197,8 +185,8 @@
                 select.innerHTML = '';
                 members.forEach(function(member) {
                     var option = document.createElement('option');
-                    option.value = member;
-                    option.textContent = '組員 ' + member;
+                    option.value = member.id;
+                    option.textContent = member.name;
                     select.appendChild(option);
                 });
                 // 設置已選擇的組員為預設值
@@ -209,9 +197,6 @@
         }
 
         function saveEdit() {
-            var teams = JSON.parse(localStorage.getItem('teams')) || [];
-            var team = teams[editingIndex];
-
             var newName = document.getElementById('editTeamName').value;
             var newMember1 = document.getElementById('editMember1').value;
             var newMember2 = document.getElementById('editMember2').value;
@@ -222,25 +207,31 @@
                 return;
             }
 
-            team.name = newName;
-            team.members = [newMember1, newMember2, newMember3];
-
-            localStorage.setItem('teams', JSON.stringify(teams));
-            loadTeams();
-            closeEditModal();
-        }
-
-        function deleteTeam(index) {
-            if (confirm('確定要刪除這個組別嗎？')) {
-                var teams = JSON.parse(localStorage.getItem('teams')) || [];
-                teams.splice(index, 1);
-                localStorage.setItem('teams', JSON.stringify(teams));
-                loadTeams();
-            }
+            fetch('/api/teams/' + editingTeamId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    teamName: newName,
+                    member1: newMember1,
+                    member2: newMember2,
+                    member3: newMember3
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    loadTeam();
+                    closeEditModal();
+                } else {
+                    alert('保存失敗：' + result.message);
+                }
+            });
         }
 
         window.onload = function() {
-            loadTeams();
+            loadTeam();
         }
     </script>
 </body>
